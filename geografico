@@ -3,6 +3,7 @@
 DROP TABLE IF EXISTS Biglietto;
 DROP TABLE IF EXISTS Treno_Tratta;
 DROP TABLE IF EXISTS Treno;
+DROP TABLE IF EXISTS Scalo;
 DROP TABLE IF EXISTS Tratta;
 DROP TABLE IF EXISTS Passeggero;
 DROP TABLE IF EXISTS Utenti;
@@ -12,20 +13,17 @@ DROP TABLE IF EXISTS Stazione_Geografica;
 
 -- ▶️ CREAZIONE TABELLE
 
--- Tabella Utenti per gestire gli utenti e le password hashate
 CREATE TABLE Utenti (
     id_utente INTEGER PRIMARY KEY,
     email TEXT UNIQUE NOT NULL,
-    password_hash TEXT NOT NULL  -- La password sarà memorizzata come hash
+    password_hash TEXT NOT NULL
 );
 
--- Tabella Ruoli per gestire i ruoli degli utenti
 CREATE TABLE Ruoli (
     id_ruolo INTEGER PRIMARY KEY,
     nome TEXT NOT NULL
 );
 
--- Tabella per associare ruoli agli utenti
 CREATE TABLE Utente_Ruolo (
     id_utente INTEGER NOT NULL,
     id_ruolo INTEGER NOT NULL,
@@ -34,7 +32,6 @@ CREATE TABLE Utente_Ruolo (
     FOREIGN KEY(id_ruolo) REFERENCES Ruoli(id_ruolo)
 );
 
--- Tabella Passeggero per i dati dei passeggeri
 CREATE TABLE Passeggero (
     id_passeggero INTEGER PRIMARY KEY,
     nome TEXT NOT NULL,
@@ -42,14 +39,12 @@ CREATE TABLE Passeggero (
     email TEXT UNIQUE NOT NULL
 );
 
--- Tabella Treno per i dati dei treni
 CREATE TABLE Treno (
     id_treno INTEGER PRIMARY KEY,
     modello TEXT NOT NULL,
     capienza INTEGER NOT NULL CHECK(capienza > 0)
 );
 
--- Tabella Tratta per i dati delle tratte ferroviarie
 CREATE TABLE Tratta (
     id_tratta INTEGER PRIMARY KEY,
     stazione_partenza TEXT NOT NULL,
@@ -59,7 +54,16 @@ CREATE TABLE Tratta (
     ritardo_minuti INTEGER DEFAULT 0 CHECK(ritardo_minuti >= 0)
 );
 
--- Tabella di relazione molti-a-molti tra Treno e Tratta
+-- 🔹 Tabella Scali intermedi
+CREATE TABLE Scalo (
+    id_scalo INTEGER PRIMARY KEY,
+    id_tratta INTEGER NOT NULL,
+    stazione TEXT NOT NULL,
+    orario_arrivo TEXT NOT NULL,
+    orario_partenza TEXT NOT NULL,
+    FOREIGN KEY(id_tratta) REFERENCES Tratta(id_tratta)
+);
+
 CREATE TABLE Treno_Tratta (
     id_treno INTEGER NOT NULL,
     id_tratta INTEGER NOT NULL,
@@ -68,7 +72,6 @@ CREATE TABLE Treno_Tratta (
     FOREIGN KEY(id_tratta) REFERENCES Tratta(id_tratta)
 );
 
--- Tabella Biglietto per i dati dei biglietti
 CREATE TABLE Biglietto (
     id_biglietto INTEGER PRIMARY KEY,
     id_passeggero INTEGER NOT NULL,
@@ -80,8 +83,7 @@ CREATE TABLE Biglietto (
     FOREIGN KEY(id_tratta) REFERENCES Tratta(id_tratta)
 );
 
--- **Tabella per le informazioni geografiche delle stazioni**
--- Contiene latitudine e longitudine per ogni stazione
+-- 🔹 Tabella stazioni con coordinate geografiche
 CREATE TABLE Stazione_Geografica (
     id_stazione INTEGER PRIMARY KEY,
     nome_stazione TEXT NOT NULL,
@@ -91,7 +93,6 @@ CREATE TABLE Stazione_Geografica (
 
 -- ▶️ DATI
 
--- Inserimento dei dati di esempio nella tabella Passeggero
 INSERT INTO Passeggero VALUES
 (1, 'Antonio', 'De Luca', 'antonio.deluca@esempio.com'),
 (2, 'Chiara', 'D''Amico', 'chiara.damico@esempio.com'),
@@ -99,13 +100,11 @@ INSERT INTO Passeggero VALUES
 (4, 'Laura', 'Barbieri', 'laura.barbieri@example.com'),
 (5, 'Marco', 'Conti', 'marco.conti@example.com');
 
--- Inserimento dei dati nella tabella Treno
 INSERT INTO Treno VALUES
 (1, 'Frecciarossa Sud', 400),
 (2, 'Intercity Notte', 300),
 (3, 'Regionale Veloce', 250);
 
--- Inserimento dei dati nella tabella Tratta
 INSERT INTO Tratta VALUES
 (1, 'Napoli Centrale', 'Bari Centrale', '08:00', '11:30', 10),
 (2, 'Lecce', 'Reggio Calabria', '12:00', '17:00', 25),
@@ -113,11 +112,29 @@ INSERT INTO Tratta VALUES
 (4, 'Salerno', 'Taranto', '10:30', '14:00', 0),
 (5, 'Roma Termini', 'Firenze SMN', '07:00', '09:00', 2);
 
--- Inserimento dei dati nella tabella Treno_Tratta
+-- 🔹 Scali intermedi
+INSERT INTO Scalo VALUES
+-- Tratta 1
+(1, 1, 'Caserta', '08:45', '08:50'),
+(2, 1, 'Benevento', '09:40', '09:45'),
+(3, 1, 'Foggia', '10:40', '10:50'),
+-- Tratta 2
+(4, 2, 'Brindisi', '12:40', '12:45'),
+(5, 2, 'Taranto', '13:30', '13:35'),
+(6, 2, 'Cosenza', '15:20', '15:30'),
+-- Tratta 3
+(7, 3, 'Villa San Giovanni', '11:30', '11:40'),
+(8, 3, 'Messina Centrale', '12:20', '12:30'),
+-- Tratta 4
+(9, 4, 'Potenza', '11:40', '11:45'),
+(10, 4, 'Metaponto', '13:20', '13:25'),
+-- Tratta 5
+(11, 5, 'Orte', '07:40', '07:42'),
+(12, 5, 'Arezzo', '08:20', '08:25');
+
 INSERT INTO Treno_Tratta VALUES
 (1, 1), (2, 2), (3, 3), (1, 4), (1, 5), (2, 5);
 
--- Inserimento dei dati nella tabella Biglietto
 INSERT INTO Biglietto VALUES
 (1, 1, 1, '14B', 45.00, date('now', '-7 days')),
 (2, 2, 2, '9C', 60.50, date('now', '-6 days')),
@@ -130,7 +147,7 @@ INSERT INTO Biglietto VALUES
 (9, 2, 1, '10E', 45.00, date('now')),
 (10, 5, 2, '1A', 60.50, date('now'));
 
--- **Inserimento dei dati geografici delle stazioni**
+-- 🔹 Coordinate stazioni
 INSERT INTO Stazione_Geografica VALUES
 (1, 'Napoli Centrale', 40.8522, 14.2681),
 (2, 'Bari Centrale', 41.1253, 16.8693),
@@ -143,23 +160,15 @@ INSERT INTO Stazione_Geografica VALUES
 (9, 'Roma Termini', 41.9028, 12.4534),
 (10, 'Firenze SMN', 43.7767, 11.2490);
 
--- ▶️ RUOLI
+-- ▶️ RUOLI & UTENTI
 
--- Inserimento dei ruoli
 INSERT INTO Ruoli VALUES
 (1, 'Amministratore'),
 (2, 'Operatore');
 
--- ▶️ ASSOCIAZIONE UTENTI E RUOLI
+INSERT INTO Utenti (id_utente, email, password_hash) VALUES
+(1, 'admin@example.com', 'hash_per_password_admin'),
+(2, 'operator@example.com', 'hash_per_password_operator');
 
--- Associa utenti ai ruoli
-INSERT INTO Utenti (email, password_hash) VALUES
-('admin@example.com', 'hash_per_password_admin'),
-('operator@example.com', 'hash_per_password_operator');
-
--- Associa l'utente amministratore al ruolo di amministratore
 INSERT INTO Utente_Ruolo VALUES (1, 1);
-
--- Associa l'operatore al ruolo di operatore
 INSERT INTO Utente_Ruolo VALUES (2, 2);
-
